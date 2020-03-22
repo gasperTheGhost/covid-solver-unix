@@ -25,7 +25,7 @@ lib/FlexX.app
 ```
 ### Linux
 ```
-run_flexx.sh
+run_flexx.sh # Same as run_flexx.command
 lib/update.sh
 lib/run_flexx
 lib/31may2020_biosolveit.lic
