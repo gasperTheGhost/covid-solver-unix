@@ -4,10 +4,10 @@
 # Prototipna skripta za Citizen Science COVID-19 drug search
 # 30.3.2020
 #
-Version="v0.6"
+Version="<GitHub version tag>"
 operatingsys="<mac/linux>" # Only valid options are mac or linux
-github_user="<GitHub User>"
-github_repo="<GitHub Repo>"
+github_user="<GitHub username>"
+github_repo="<GitHub repo>"
 #
 FirstLoopFinished=0
 #
@@ -29,8 +29,8 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$RBT_ROOT/lib"
 export PATH="$PATH:$RBT_ROOT/bin"
 export PERL5LIB="$RBT_ROOT/lib:$PERL5LIB"
 # Set API key var
-apikey="API key"
-server="<server URL>" # DO NOT END WITH A SLASH!!!!!!!!!!!
+apikey="<API key>"
+server="<counter server>" # DO NOT END WITH A SLASH!!!!!!!!!!!
 #
 # Check for updates
 #
@@ -217,7 +217,7 @@ start_dialogue() {
     echo "Welcome to the CITIZEN SCIENCE COVID-19 $Version"
     # Check threads
     threads=$($threadCheckCommand)
-    if [ $threads -gt 0 ]; then
+    if [ "$threads" -gt 0 ]; then
         echo "Your current machine has $threads available threads"
         while true; do
             read -p "Please enter how many threads you would like this software to use (1-$threads/[A]ll) " thread_count
@@ -227,7 +227,7 @@ start_dialogue() {
             elif [ "$thread_count" = "" ]; then
                 parallels="$threads"
                 break;
-            elif ! [ $thread_count -gt $threads ] && [ $thread_count -gt 0 ]; then
+            elif ! [ "$thread_count" -gt "$threads" ] && [ "$thread_count" -gt 0 ]; then
                 parallels="$thread_count"
                 break;
             else
@@ -249,8 +249,15 @@ start_dialogue() {
             echo "You can set a priority for this software, to make it less obtrusive"
             read -p "Enter a number between -20 (highest) and 19 (lowest priority); default is 0 " nice_level
             if [ "$nice_level" -gt -21 ] && [ "$nice_level" -lt 20 ]; then
-                niceNum=$nice_level
-                break
+                if [ "$nice_level" -lt 0 ] && [ "$usr_root"="true" ] || ! [ "$nice_level" -lt 0 ]; then
+                    niceNum=$nice_level
+                    break
+                elif [ "$nice_level" -lt 0 ] && [ $usr_root="false" ]; then
+                    echo "Negative nice value can only be set with root permissions!"
+                    echo "Setting nice to 0"
+                    niceNum=0
+                    break
+                fi
             else
                 niceNum=0
                 break
@@ -271,9 +278,18 @@ start_dialogue() {
 # *** PROGRAM START *** #
 #
 version_check
+# Remove old split files if present
 if [ -e temp/*split*.sd ]; then
     rm -f temp/*split*.sd
 fi
+# Check if user is root for negative nice
+if [ "$EUID" -ne 0 ]; then
+    echo "Script is running as root!"
+    usr_root="true"
+else
+    usr_root="false"
+fi
+# Check if script was run by update.sh
 if [ -e settings.update ]; then
     FirstLoopFinished=1
     start_time=$(date +%s)
@@ -283,10 +299,11 @@ if [ -e settings.update ]; then
     autoupdate="$(sed '4q;d' settings.update)"
     rm -f settings.update
     main_func
+# Check if theres a config file
 elif [ -e rxdock.config ]; then
     start_time=$(date +%s)
     parallels="$(cat rxdock.config | grep threads | cut -d '=' -f 2)"
-    if [[ $parallels =~ ^[0-9]+$ ]] && ! [ $parallels -gt $(threadCheckCommand) ]; then 
+    if [[ "$parallels" =~ ^[0-9]+$ ]] && ! [ "$parallels" -gt $(threadCheckCommand) ]; then 
         if [[ "$(cat rxdock.config | grep save_output | cut -d '=' -f 2)" = [Tt][Rr][Uu][Ee] ]]; then    
             savdel="s"
         else
@@ -298,16 +315,23 @@ elif [ -e rxdock.config ]; then
             autoupdate="false"
         fi
         nice_level="$(cat rxdock.config | grep nice_level | cut -d '=' -f 2)"
-        if [ $nice_level -gt -21 ] && [ $nice_level -lt 20 ]; then
-            niceNum=$nice_level
-            main_func
+        if [ "$nice_level" -gt -21 ] && [ "$nice_level" -lt 20 ]; then
+            if [ "$nice_level" -lt 0 ] && [ "$usr_root"="true" ] || ! [ "$nice_level" -lt 0 ]; then
+                niceNum=$nice_level
+                main_func
+            elif [ "$nice_level" -lt 0 ] && [ "$usr_root"="false" ]; then
+                echo "Negative nice value can only be set with root permissions!"
+                echo "Setting nice to 0"
+                niceNum=0
+                main_func
+            fi
         else
             niceNum=0
             main_func
         fi
     else
         parallels="$(threadCheckCommand)"
-        if [[ $parallels =~ ^[0-9]+$ ]]; then
+        if [[ "$parallels" =~ ^[0-9]+$ ]]; then
             main_func
         else
             echo "Error in config file!"
