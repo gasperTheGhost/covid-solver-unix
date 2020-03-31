@@ -27,6 +27,7 @@ fi
 export RBT_ROOT="$PWD/RxDock"
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$RBT_ROOT/lib"
 export PATH="$PATH:$RBT_ROOT/bin"
+export PERL5LIB="$RBT_ROOT/lib:$PERL5LIB"
 # Set API key var
 apikey="API key"
 server="<server URL>" # DO NOT END WITH A SLASH!!!!!!!!!!!
