@@ -54,7 +54,7 @@ Threads should be an integer lower or equal to the number of logical cores in yo
 
 Save_output should be TRUE or FALSE. This tells the script if you want to keep the output files or delete them after uploading them to the server, default is FALSE.
 
-Nice should be an integer between -20 and 19. This tells your OS with what priority RxDock should be run, 19 means lowest priority, -20 means highest priority, default is 0. Negatice nice values can only be set by root!
+Nice should be an integer between -20 and 19. This tells your OS with what priority RxDock should be run, 19 means lowest priority, -20 means highest priority, default is 0. Negative nice values can only be set by root!
 
 Auto_update should be TRUE or FALSE. This tells the script if you want the software to automatically update itself when a new version is found. Default is FALSE, but we recommend setting to TRUE.
 
