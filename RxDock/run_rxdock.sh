@@ -194,11 +194,10 @@ main_func() {
     do
         cat $file >> $outfx.sdf
     done
-    read
     #
     # STEP 5. UPLOAD RESULTS TO SERVER
     #
-    if ! [[ "$(cat $outfx.sdf)"="" ]]; then
+    if [ -s "$outfx.sdf" ]; then
         echo "Uploading package $cnum for target $tnum"
         curl -s --request POST -F "data=@$outfx.sdf" -F "apikey=$apikey" $server/$tnum/file/$cnum
     else
