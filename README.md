@@ -23,7 +23,7 @@ rxdock.config*
 no.update*
 RxDock/run_rxdock
 RxDock/update.sh
-RxDock/splitMols.sh
+RxDock/splitMols
 RxDock/bin - RxDock binary folder
 RxDock/lib - RxDock library folder
 RxDock/data - RxDock data folder
