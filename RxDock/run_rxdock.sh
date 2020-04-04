@@ -4,19 +4,19 @@
 # Prototipna skripta za Citizen Science COVID-19 drug search
 # 30.3.2020
 #
-Version="<GitHub version tag>"
+Version="<GitHub Version Tag>"
 operatingsys="<mac/linux>" # Only valid options are mac or linux
-github_user="<GitHub username>"
-github_repo="<GitHub repo>"
+github_user="<GitHub User>"
+github_repo="<GitHub Repo>"
 #
 FirstLoopFinished=0
 #
 # Set variables according to selected OS
 #
 versionCheckAPI="https://api.github.com/repos/$github_user/$github_repo/releases/latest"
-if [ $operatingsys = mac ]; then
+if [[ $operatingsys = "mac" ]]; then
     threadCheckCommand="sysctl -n hw.ncpu"
-elif [ $operatingsys = linux ]; then
+elif [[ $operatingsys = "linux" ]]; then
     threadCheckCommand="nproc"
 else
     echo "Operating system not specified or invalid!"
@@ -29,13 +29,13 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$RBT_ROOT/lib"
 export PATH="$PATH:$RBT_ROOT/bin"
 export PERL5LIB="$RBT_ROOT/lib:$PERL5LIB"
 # Set API key var
-apikey="<API key>"
-server="<counter server>" # DO NOT END WITH A SLASH!!!!!!!!!!!
+apikey="<API Key>"
+server="<API Server" # DO NOT END WITH A SLASH!!!!!!!!!!!
 #
 # Check for updates
 #
 auto_update() {
-    if [ $FirstLoopFinished -eq 1 ]; then
+    if [[ $FirstLoopFinished -eq 1 ]]; then
         echo "Saving settings..."
         echo $parallels > settings.update
         echo $savdel >> settings.update
@@ -53,9 +53,9 @@ version_check() {
     if ! [ -e no.update ]; then
         start_time=$(date +%s)
         currentVersion="$(curl -s $versionCheckAPI | grep tag_name | cut -d '"' -f 4)"
-        if ! [ $Version = $currentVersion ] && ! [ $currentVersion = *DOCTYPE* ]; then
+        if ! [[ $Version = $currentVersion ]] && ! [[ $currentVersion = *DOCTYPE* ]]; then
             echo "Newer version of script found."
-            if [ "$autoupdate" = "true" ]; then
+            if [[ "$autoupdate" = "true" ]]; then
                 auto_update
             else
                 while true; do
@@ -67,10 +67,10 @@ version_check() {
                     esac
                 done
             fi
-        elif [ $currentVersion = *DOCTYPE* ]; then
+        elif [[ $currentVersion = *DOCTYPE* ]]; then
             echo "Error checking for updates!"
             echo "Continuing..."
-        elif [ $Version = $currentVersion ]; then
+        elif [[ $Version = $currentVersion ]]; then
             echo "You are running the newest version of the script"
         fi
         if [ -e update.sh ]; then
@@ -87,38 +87,40 @@ main_func() {
     #
     # STEP 0. CHECK UPDATES IF TWELVE HOURS HAVE PASSED
     #
-    let time_elapsed=$end_time-$start_time
-    if [ $time_elapsed -gt 43200 ]; then
+    if ! [[ $FirstLoopFinished -eq 0 ]]; then 
+        let time_elapsed=$end_time-$start_time
+    fi
+    if [[ $time_elapsed -gt 43200 ]]; then
         version_check
     fi
     #
     # STEP 1. CHECK THE COUNTER 
     #
     # Get target counter value
-    t=$(curl -s --request GET $server/target)
+    t=$(curl -s --request POST -d "apikey=$apikey" $server/target)
     let tnum=$t
     # Check if there's any targets left on server
-    while [ $tnum -eq -1 ]; do
+    while [[ $tnum -eq -1 ]]; do
         echo "Ran out of targets for docking"
         echo "We are constantly adding targets to our database"
         echo "The program will continue checking for new targets every 30mins"
         read -t 1800 -p "Press T to [t]erminate script or enter to recheck now..." empty
         case $empty in
-            [Tt]*) rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sdf $fx *.as *.prm temp; exit;;
+            [Tt]*) rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sdff $fx *.as *.prm temp; exit;;
             *) echo "Rechecking..."; main_func;;
         esac
     done
     # Get structure counter value
-    c=$(curl -s --request GET $server/$tnum/counter)
+    c=$(curl -s --request POST -d "apikey=$apikey" $server/$tnum/counter)
     let cnum=$c
     # Check if there's any structures left on server
-    while [ $cnum -eq -1 ]; do
+    while [[ $cnum -eq -1 ]]; do
         echo "Ran out of structures to calculate"
         echo "We are constantly adding structures to our database"
         echo "The program will continue checking for new structures every 30mins"
         read -t 1800 -p "Press T to [t]erminate script or enter to recheck now..." empty
         case $empty in
-            [Tt]*) rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sdf $fx *.as *.prm temp; exit;;
+            [Tt]*) rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sdff $fx *.as *.prm temp; exit;;
             *) echo "Rechecking..."; main_func;;
         esac
     done
@@ -127,15 +129,15 @@ main_func() {
     # STEP 2. DOWNLOAD A PACKAGE WITH LIGANDS
     #
     while true; do
-        curl -s --request GET $server/$tnum/file/down/$cnum --output $fx
+        curl -s --request POST -d "apikey=$apikey" $server/$tnum/file/down/$cnum --output $fx
         health=$(head -n 1 $fx) # Check if file is healthy
-        if [ -e $fx ] && ! [ "$health" = *DOCTYPE* ]; then
+        if [[ -e $fx ]] && ! [[ "$health" = *DOCTYPE* ]]; then
             break # Continue if file is healthy
         else
             echo "Error downloading structure!"
             read -t 5 -p "Retrying in 5 sec... [A]bort " hp
             case $hp in
-                [Aa]*) rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sdf $fx *.as *.prm temp; exit;;
+                [Aa]*) rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sdff $fx *.as *.prm temp; exit;;
                 *) echo "Retrying...";;
             esac
         fi
@@ -143,12 +145,12 @@ main_func() {
     #
     # STEP 3. DOWNLOAD TARGET
     #
-    if [ $FirstLoopFinished -eq 0 ] || ! [ -e TARGET_REF_$tnum.sdf -a -e TARGET_PRO_$tnum.mol2 -a -e TARGET_$tnum.as -a -e TARGET_$tnum.prm -a -e htvs.ptc ]; then
+    if [ $FirstLoopFinished -eq 0 ] || ! [ -e TARGET_REF_$tnum.sdff -a -e TARGET_PRO_$tnum.mol2 -a -e TARGET_$tnum.as -a -e TARGET_$tnum.prm -a -e htvs.ptc ]; then
         rm -f TARGET_PRO_$tnum_old.mol2 TARGET_REF_$tnum_old.sdf TARGET_$tnum_old.* htvs.ptc
         while true; do
-            curl -s --request GET $server/$tnum/file/target/archive --output TARGET_$tnum.zip
+            curl -s --request POST -d "apikey=$apikey" $server/$tnum/file/target/archive --output TARGET_$tnum.zip
             health=$(head -n 1 TARGET_$tnum.zip) # Check if file is healthy
-            if [ -e TARGET_$tnum.zip ] && ! [ "$health" = *DOCTYPE* ]; then
+            if [ -e TARGET_$tnum.zip ] && ! [[ "$health" = *DOCTYPE* ]]; then
                 unzip -o TARGET_$tnum.zip
                 rm -f TARGET_$tnum.zip
                 break # Continue if file is healthy
@@ -156,7 +158,7 @@ main_func() {
                 echo "Error downloading target!"
                 read -t 5 -p "Retrying in 5 sec... [A]bort " hp
                 case $hp in
-                    [Aa]*) rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sdf $fx *.as *.prm temp htvs.ptc; exit;;
+                    [Aa]*) rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sdff $fx *.as *.prm temp htvs.ptc; exit;;
                     *) echo "Retrying...";;
                 esac
             fi
@@ -169,12 +171,21 @@ main_func() {
     mkdir -p output
     outfx="output/OUT_T$tnum"'_'"$cnum"
     target_prm=TARGET_$tnum.prm
-    # PRM file generation
     # Split the compound file for multiple threads
     mkdir -p temp
-    RxDock/splitMols.sh $fx $parallels temp/split
+    RxDock/splitMols $cnum $parallels $PWD #| tee split.log
+    wait
     # Run RxDock
-    for file in temp/split*sd
+    unix=1
+    for file in temp/temp*sd
+    do
+        if ! [[ $(tail -1 $file) = '$$$$' ]]; then
+            echo '$$$$' >> $file
+        fi
+        RxDock/bin/to_unix $file temp/unix_$unix.sd
+        let unix=$unix+1
+    done
+    for file in temp/unix*sd
     do
         nice -n $niceNum rbdock -r $target_prm -p dock.prm -f htvs.ptc -i $file -o ${file%%.*}_out &
     done
@@ -183,11 +194,16 @@ main_func() {
     do
         cat $file >> $outfx.sdf
     done
+    read
     #
     # STEP 5. UPLOAD RESULTS TO SERVER
     #
-    echo "Uploading package $cnum for target $tnum"
-    curl -s --request POST -F "data=@$outfx.sdf" -F "apikey=$apikey" $server/$tnum/file/$cnum
+    if ! [[ "$(cat $outfx.sdf)"="" ]]; then
+        echo "Uploading package $cnum for target $tnum"
+        curl -s --request POST -F "data=@$outfx.sdf" -F "apikey=$apikey" $server/$tnum/file/$cnum
+    else
+        echo "Error: Writing output failed..."
+    fi
     #
     # STEP 6. CLEANUP
     #
@@ -204,7 +220,7 @@ redo() {
     read -t 10 -p "Would you like to calculate the next package? (Y/n) " yn
     case $yn in
         [Yy]* ) tnum_old=$tnum; main_func;;
-        [Nn]* ) rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sd $fx *.as *.prm temp htvs.ptc; exit;;
+        [Nn]* ) rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sdf $fx *.as *.prm temp htvs.ptc; exit;;
         * ) main_func;;
     esac
     main_func
@@ -252,7 +268,7 @@ start_dialogue() {
                 if [ "$nice_level" -lt 0 ] && [ "$usr_root"="true" ] || ! [ "$nice_level" -lt 0 ]; then
                     niceNum=$nice_level
                     break
-                elif [ "$nice_level" -lt 0 ] && [ $usr_root="false" ]; then
+                elif [ "$nice_level" -lt 0 ] && [ "$usr_root"="false" ]; then
                     echo "Negative nice value can only be set with root permissions!"
                     echo "Setting nice to 0"
                     niceNum=0
@@ -278,12 +294,13 @@ start_dialogue() {
 # *** PROGRAM START *** #
 #
 version_check
+end_time=
 # Remove old split files if present
-if [ -e temp/*split*.sd ]; then
+if [[ -e temp/*split*.sd ]]; then
     rm -f temp/*split*.sd
 fi
 # Check if user is root for negative nice
-if [ "$EUID" -ne 0 ]; then
+if [[ "$EUID" -ne 0 ]]; then
     echo "Script is running as root!"
     usr_root="true"
 else
@@ -303,7 +320,7 @@ if [ -e settings.update ]; then
 elif [ -e rxdock.config ]; then
     start_time=$(date +%s)
     parallels="$(cat rxdock.config | grep threads | cut -d '=' -f 2)"
-    if [[ "$parallels" =~ ^[0-9]+$ ]] && ! [ "$parallels" -gt $(threadCheckCommand) ]; then 
+    if [[ "$parallels" =~ ^[0-9]+$ ]] && ! [[ "$parallels" -gt $(threadCheckCommand) ]]; then 
         if [[ "$(cat rxdock.config | grep save_output | cut -d '=' -f 2)" = [Tt][Rr][Uu][Ee] ]]; then    
             savdel="s"
         else
@@ -315,11 +332,11 @@ elif [ -e rxdock.config ]; then
             autoupdate="false"
         fi
         nice_level="$(cat rxdock.config | grep nice_level | cut -d '=' -f 2)"
-        if [ "$nice_level" -gt -21 ] && [ "$nice_level" -lt 20 ]; then
-            if [ "$nice_level" -lt 0 ] && [ "$usr_root"="true" ] || ! [ "$nice_level" -lt 0 ]; then
+        if [[ "$nice_level" -gt -21 ]] && [[ "$nice_level" -lt 20 ]]; then
+            if [[ "$nice_level" -lt 0 ]] && [[ "$usr_root"="true" ]] || ! [[ "$nice_level" -lt 0 ]]; then
                 niceNum=$nice_level
                 main_func
-            elif [ "$nice_level" -lt 0 ] && [ "$usr_root"="false" ]; then
+            elif [[ "$nice_level" -lt 0 ]] && [[ "$usr_root"="false" ]]; then
                 echo "Negative nice value can only be set with root permissions!"
                 echo "Setting nice to 0"
                 niceNum=0
