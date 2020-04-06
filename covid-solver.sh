@@ -1,5 +1,8 @@
 #!/bin/bash
 #
+cd "${0%/*}"
+exec > >(tee -ia last_run.log) 2>&1
+#
 # This is prototype script for OPENSCIENCE project 
 # Prototipna skripta za Citizen Science COVID-19 drug search
 # 30.3.2020
@@ -80,6 +83,45 @@ version_check() {
         echo "Update block enabled, skipping check..."
     fi
 }
+legal_disc() {
+    clear
+    echo "# Copyright Notice and Disclaimer"
+    echo "# ==============================="
+    echo "# This software (COVID Solver, win, linux, mac versions) along with its"
+    echo "# source code is released under the terms of the"
+    echo "# GNU General Public License version 3 (GPL v3)."
+    echo "# A full copy of the GNU General Public License can be found at:"
+    echo "#  <https://www.gnu.org/licenses/>."
+    echo "#"
+    echo "# Permission to use, copy, modify and distribute"
+    echo "# versions of this software and its documentation for any purpose and"
+    echo "# without fee is hereby granted, provided that the above copyright"
+    echo "# notice appear in all copies and that both the copyright notice and"
+    echo "# this permission notice appear in supporting documentation, and that"
+    echo "# the name(s) of the author(s) not be used in advertising or publicity"
+    echo "# pertaining to distribution of the software without specific, written"
+    echo "# prior permission."
+    echo "#"
+    echo "# This program is distributed in the hope that it will be useful,"
+    echo "# but WITHOUT ANY WARRANTY; without even the implied warranty of"
+    echo "# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the"
+    echo "# GNU General Public License for more details."
+    echo "#"
+    echo "# THE AUTHORS (Žan Pevec, Gašper Tomšič, Marko Jukić, Črtomir Podlipnik"
+    echo "# and supporting organisations at the COVID.si project - www.covid.si)"
+    echo "# DISCLAIM ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,"
+    echo "# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN"
+    echo "# NO EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY SPECIAL, INDIRECT OR"
+    echo "# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF"
+    echo "# USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR"
+    echo "# OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR"
+    echo "# PERFORMANCE OF THIS SOFTWARE."
+    echo "# ----------------------------------------------------------------------"
+    echo "# Running this software means you have read the licence in full conscience"
+    echo "# and agree to the terms described above."
+    read -p "Press enter to continue running the software..."
+    clear
+}
 #
 # Declare main function
 #
@@ -98,7 +140,17 @@ main_func() {
     #
     # Get target counter value
     t=$(curl -s --request POST -d "apikey=$apikey" $server/target)
-    let tnum=$t
+    if [[ $t -eq $t ]]; then
+        let tnum=$t
+    else
+        echo "Error getting current target number!"
+        echo "Retrying in 5 seconds or enter A to abort"
+        read -t 5 terror
+        case $terror in
+            [Aa]*) exit;;
+            *) main_func;;
+        esac
+    fi
     # Check if there's any targets left on server
     while [[ $tnum -eq -1 ]]; do
         echo "Ran out of targets for docking"
@@ -111,8 +163,21 @@ main_func() {
         esac
     done
     # Get structure counter value
-    c=$(curl -s --request POST -d "apikey=$apikey" $server/$tnum/counter)
-    let cnum=$c
+    while TRUE; do
+        c=$(curl -s --request POST -d "apikey=$apikey" $server/$tnum/counter)
+        if [[ $c -eq $c ]]; then
+            let cnum=$c
+            break
+        else
+            echo "Error getting current package number!"
+            echo "Retrying in 5 seconds or enter A to abort"
+            read -t 5 cerror
+            case $cerror in
+                [Aa]*) exit;;
+                *) main_func;;
+            esac
+        fi
+    done
     # Check if there's any structures left on server
     while [[ $cnum -eq -1 ]]; do
         echo "Ran out of structures to calculate"
@@ -183,6 +248,7 @@ main_func() {
             echo '$$$$' >> $file
         fi
         RxDock/bin/to_unix $file temp/unix_$unix.sd
+        rm -f "$file"
         let unix=$unix+1
     done
     for file in temp/unix*sd
@@ -229,7 +295,7 @@ redo() {
 # User input dialogue
 #
 start_dialogue() {
-    echo "Welcome to the CITIZEN SCIENCE COVID-19 $Version"
+    echo "Welcome to COVID Solver $Version for Citizens Science!"
     # Check threads
     threads=$($threadCheckCommand)
     if [ "$threads" -gt 0 ]; then
@@ -299,7 +365,7 @@ if [[ -e temp/*split*.sd ]]; then
     rm -f temp/*split*.sd
 fi
 # Check if user is root for negative nice
-if [[ "$EUID" -ne 0 ]]; then
+if ! [[ "$EUID" -eq 0 ]]; then
     echo "Script is running as root!"
     usr_root="true"
 else
@@ -317,6 +383,8 @@ if [ -e settings.update ]; then
     main_func
 # Check if theres a config file
 elif [ -e rxdock.config ]; then
+    echo "" > last_run.log
+    legal_disc
     start_time=$(date +%s)
     parallels="$(cat rxdock.config | grep threads | cut -d '=' -f 2)"
     if [[ "$parallels" =~ ^[0-9]+$ ]] && ! [[ "$parallels" -gt $(threadCheckCommand) ]]; then 
@@ -355,6 +423,8 @@ elif [ -e rxdock.config ]; then
         fi
     fi
 else
+    echo "" > last_run.log
+    legal_disc
     start_dialogue
 fi
 #
