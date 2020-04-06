@@ -8,7 +8,7 @@ It is used in conjunction with [pevecyan](https://github.com/pevecyan)'s [covid-
 To use the script as intended RxDock/run_rxdock.sh has to be compiled with
 ```
 cd /path/to/script
-shc -r -f run_rxdock.sh -o run_rxdock
+shc -r -f covid-solver.sh -o covid-solver
 ```
 ## Dependencies
 * shc [Shell Script Compiler](https://neurobin.org/projects/softwares/unix/shc/) (for compiling)
@@ -18,10 +18,9 @@ shc -r -f run_rxdock.sh -o run_rxdock
 
 ## File structure of working installation
 ```
-start_docking.command (or .sh on linux)
+covid-solver
 rxdock.config*
 no.update*
-RxDock/run_rxdock
 RxDock/update.sh
 RxDock/splitMols
 RxDock/bin - RxDock binary folder
