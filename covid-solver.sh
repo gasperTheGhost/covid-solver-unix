@@ -254,8 +254,9 @@ main_func() {
     for file in temp/unix*sd
     do
         nice -n $niceNum rbdock -r $target_prm -p dock.prm -f htvs.ptc -i $file -o ${file%%.*}_out &
+        pids+=" $!"
     done
-    wait
+    wait $pids
     for file in temp/*_out*
     do
         cat $file >> $outfx.sdf
@@ -358,6 +359,21 @@ start_dialogue() {
 #
 # *** PROGRAM START *** #
 #
+# Trap Ctrl-C
+#
+ctrlC() {
+    for process in "${pids[@]}"
+        kill -9 process
+    done
+    rm -rf $fx temp
+    if [ "$savdel" = "d" ]; then
+        rm -f $outfx.sdf
+    fi
+    rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sdf $fx *.as *.prm temp htvs.ptc
+    exit
+}
+trap ctrlC SIGINT
+
 version_check
 end_time=
 # Remove old split files if present
