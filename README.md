@@ -5,13 +5,15 @@ It is used in conjunction with [pevecyan](https://github.com/pevecyan)'s [covid-
 [Windows version](https://github.com/pevecyan/covid-solver-windows-)
 
 ## Compiling
-To use the script as intended RxDock/run_rxdock.sh has to be compiled with
+To use the script as intended covid-solver.sh and RxDock/splitMols.dart have to be compiled with
 ```
 cd /path/to/script
 shc -r -f covid-solver.sh -o covid-solver
+dart2native RxDock/splitMols.dart -o RxDock/splitMols
 ```
 ## Dependencies
-* shc [Shell Script Compiler](https://neurobin.org/projects/softwares/unix/shc/) (for compiling)
+* shc [Shell Script Compiler](https://neurobin.org/projects/softwares/unix/shc/) (only for compiling)
+* [Dart](https://dart.dev/) (>=2.6) (only for compiling)
 * [RxDock](https://rxdock.org/)
 * Python 2 (>=2.6)
 * curl
