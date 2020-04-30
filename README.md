@@ -1,5 +1,5 @@
 # covid-solver-unix
-This is the mac/linux universal version of the script used for automated docking in the [Open Science Project COVID-19](https://koronavirus.ctk.uni-lj.si/skupnostna-znanost)
+This is the mac/linux universal version of the script used for automated docking in the [Open Science Project COVID-19](https://covid.si)
 It is used in conjunction with [pevecyan](https://github.com/pevecyan)'s [covid-solver-queue](https://github.com/pevecyan/covid-solver-queue)
 
 [Windows version](https://github.com/pevecyan/covid-solver-windows-)
