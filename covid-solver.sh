@@ -19,8 +19,10 @@ FirstLoopFinished=0
 versionCheckAPI="https://api.github.com/repos/$github_user/$github_repo/releases/latest"
 if [[ $operatingsys = "mac" ]]; then
     threadCheckCommand="sysctl -n hw.ncpu"
+    machineid=$(ioreg -rd1 -c IOPlatformExpertDevice | awk '/IOPlatformUUID/ { split($0, line, "\""); printf("%s\n", line[4]); }')
 elif [[ $operatingsys = "linux" ]]; then
     threadCheckCommand="nproc"
+    machineid=$(cat /etc/machineid)
 else
     echo "Operating system not specified or invalid!"
     echo "Exiting..."
@@ -265,8 +267,11 @@ main_func() {
     # STEP 5. UPLOAD RESULTS TO SERVER
     #
     if [ -s "$outfx.sdf" ]; then
+        rm upload.zip
+        zip upload.zip $outfx.sdf
         echo "Uploading package $cnum for target $tnum"
-        curl -s --request POST -F "data=@$outfx.sdf" -F "apikey=$apikey" $server/$tnum/file/$cnum
+        curl -s --request POST -F "data=@upload.zip" -F "apikey=$apikey" $server/$tnum/file/$cnum -F "ClientGUID=$machineid" -F "ThreadCount=$parallels"
+        rm upload.zip
     else
         echo "Error: Writing output failed..."
     fi
