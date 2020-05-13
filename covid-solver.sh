@@ -11,6 +11,7 @@ Version="<GitHub Version Tag>"
 operatingsys="<mac/linux>" # Only valid options are mac or linux
 github_user="<GitHub User>"
 github_repo="<GitHub Repo>"
+zipkey="<zipkey>"
 #
 FirstLoopFinished=0
 #
@@ -196,9 +197,11 @@ main_func() {
     # STEP 2. DOWNLOAD A PACKAGE WITH LIGANDS
     #
     while true; do
-        curl -s --request POST -d "apikey=$apikey" $server/$tnum/file/down/$cnum --output $fx
+        curl -s --request POST -d "apikey=$apikey" -d "ZipFlag=1" $server/$tnum/file/down/$cnum --output $fx.zip
         health=$(head -n 1 $fx) # Check if file is healthy
-        if [[ -e $fx ]] && ! [[ "$health" = *DOCTYPE* ]]; then
+        if [[ -e $fx.zip ]] && ! [[ "$health" = *DOCTYPE* ]]; then
+            unzip -o $fx.zip
+            rm -f $fx.zip
             break # Continue if file is healthy
         else
             echo "Error downloading structure!"
@@ -268,9 +271,9 @@ main_func() {
     #
     if [ -s "$outfx.sdf" ]; then
         rm upload.zip
-        zip upload.zip $outfx.sdf
+        zip -p $zipkey upload.zip $outfx.sdf
         echo "Uploading package $cnum for target $tnum"
-        curl -s --request POST -F "data=@upload.zip" -F "apikey=$apikey" $server/$tnum/file/$cnum -F "ClientGUID=$machineid" -F "ThreadCount=$parallels"
+        curl -s --request POST -F "data=@upload.zip" -F "apikey=$apikey" $server/$tnum/file/$cnum -F "ClientGUID=$machineid" -F "ThreadCount=$parallels" -F "ZipFlag=1"
         rm upload.zip
     else
         echo "Error: Writing output failed..."
@@ -374,7 +377,7 @@ ctrlC() {
     if [ "$savdel" = "d" ]; then
         rm -f $outfx.sdf
     fi
-    rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sdf $fx *.as *.prm temp htvs.ptc
+    rm -rf TARGET_PRO_$tnum.mol2 TARGET_REF_$tnum.sdf $fx *.as *.prm temp htvs.ptc *.zip
     exit
 }
 trap ctrlC SIGINT
