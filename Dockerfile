@@ -1,9 +1,9 @@
 FROM ubuntu:18.04
 
 RUN apt-get update && \
-    apt-get install -y wget unzip curl expect && \
+    apt-get install -y wget zip unzip curl expect && \
     mkdir -p /app && \
-    wget -O /app/covid-linux.zip "https://github.com/gasperTheGhost/covid-solver-unix/releases/latest/download/covid-linux.zip" && \
+    wget -O /app/covid-linux.zip "https://github.com/gasperTheGhost/covid-solver-unix/releases/latest/download/covid-linux64.zip" && \
     unzip /app/covid-linux.zip -d /app
 
 WORKDIR /app
